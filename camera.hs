@@ -4,25 +4,23 @@ import qualified Data.ByteString.Char8 as BSU
 import Data.ByteString.Search
 import Data.Char
 
-varName str = BS.concat [BSU.pack str, BS.singleton 0]
+escapeVal str = BS.concat [BS.singleton 0, BSU.pack str, BS.singleton 0]
 
-replaceBin nameStr val str =
-    let name = varName nameStr
-        valLen = length val
-        nameLen = BS.length name
-        namePos = head $ indices name str
-        index = nameLen + namePos
-        splited = BS.splitAt index str
-        nullSplit = BSU.span isControl $ snd splited
-    in BS.concat [fst splited, fst nullSplit, BSU.pack val, snd $ BS.splitAt valLen $ snd nullSplit]
+replaceBinVal original newVal str =
+    let escapedVal = escapeVal original
+        valLen = BS.length escapedVal
+        valPos = head $ indices escapedVal str
+        splited = BS.splitAt valPos str
+        firstHalf = fst splited
+        secondHalf = snd $ BS.splitAt valLen $ snd splited
+    in BS.concat [firstHalf, escapeVal newVal, secondHalf]
 
 modConfig original = 
-        modMouseWtf $ modPitchMax $ modVisibleDistance $ modCameraDistanceMin original
-    where 
-        modCameraDistanceMin = replaceBin "dota_camera_distance_min" "1650"
-        modVisibleDistance = replaceBin "r_propsmaxdist" "1650"
-        modPitchMax = replaceBin "dota_camera_pitch_max" "89"
-        modMouseWtf = replaceBin "dota_camera_mousewheel_direction_multiplier" "89"
+        modCamAngle $ modCamDist1 $ modCamDist2 original
+    where
+        modCamDist1 = replaceBinVal "1134" "1650"
+        modCamDist2 = replaceBinVal "1200" "1650"
+        modCamAngle = replaceBinVal "60" "89"
 
 main = do
     original <- withBinaryFile "dota 2 beta\\game\\dota\\bin\\win64\\client.dll" ReadMode BS.hGetContents
